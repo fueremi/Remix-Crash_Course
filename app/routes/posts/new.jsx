@@ -1,5 +1,6 @@
 import { Link, redirect, useActionData, json } from "remix";
 import { db } from "~/utils/db.server";
+import { getUser } from "~/utils/session.server";
 
 function validateTitle(title) {
   if (typeof title !== "string" || title.length <= 3) {
@@ -22,6 +23,7 @@ export const action = async ({ request }) => {
   const title = form.get("title");
   const body = form.get("body");
   const fields = { title, body };
+  const user = await getUser(request);
 
   const fieldErrors = {
     title: validateTitle(title),
@@ -33,7 +35,7 @@ export const action = async ({ request }) => {
     return badRequest({ fieldErrors, fields });
   }
 
-  const post = await db.post.create({ data: fields });
+  const post = await db.post.create({ data: { ...fields, userId: user.id } });
 
   return redirect(`/posts/${post.id}`);
 };
@@ -54,7 +56,14 @@ function NewPost() {
         <form method="POST">
           <div className="form-control">
             <label htmlFor="title">Title</label>
-            <input type="text" name="title" id="title" />
+            <input
+              type="text"
+              name="title"
+              id="title"
+              defaultValue={
+                actionData?.fields?.body && actionData?.fields?.body
+              }
+            />
             <div className="error">
               <p>
                 {actionData?.fieldErrors?.title &&
@@ -64,7 +73,14 @@ function NewPost() {
           </div>
           <div className="form-control">
             <label htmlFor="body">Body</label>
-            <textarea type="text" name="body" id="body" />
+            <textarea
+              type="text"
+              name="body"
+              id="body"
+              defaultValue={
+                actionData?.fields?.body && actionData?.fields?.body
+              }
+            />
             <div className="error">
               <p>
                 {actionData?.fieldErrors?.body && actionData?.fieldErrors?.body}
